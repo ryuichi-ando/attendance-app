@@ -10,14 +10,12 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('break_correction_requests', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->tinyInteger('is_admin')->nullable();
-            $table->rememberToken();
+            $table->foreignId('break_id')->constrained()->cascadeOnDelete();
+            $table->time('requested_break_start');
+            $table->time('requested_break_end');
+            $table->tinyInteger('status');
             $table->timestamps();
         });
     }
@@ -27,6 +25,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('break_correction_requests');
     }
 };

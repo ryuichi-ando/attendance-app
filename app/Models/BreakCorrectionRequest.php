@@ -18,6 +18,9 @@ class BreakCorrectionRequest extends Model
 
     public function break()
     {
-        return $this->belongsTo(AttendanceBreak::class);
+        return $this->belongsTo(
+            AttendanceBreak::class,
+            'break_id'
+        );
     }
 }

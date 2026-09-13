@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->time('requested_end_time');
             $table->text('note');
             $table->tinyInteger('status');
-            //0:承認待ち 1:承認待ち
+            //0:承認待ち 1:承認済み
             $table->timestamps();
         });
     }

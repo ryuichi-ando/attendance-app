@@ -21,7 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'admin_flag',
+        'is_admin',
     ];
 
     /**
@@ -42,11 +42,36 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'admin_flag' => 'integer',
+        'is_admin' => 'boolean',
     ];
+
+    public function getAdminStatusAttribute()
+    {
+        return $this->is_admin;
+    }
 
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
+    }
+
+    public function getAttendanceStatusAttribute()
+    {
+        $attendance = $this->attendances()
+            ->whereDate('attendance_date', today())
+            ->latest()
+            ->first();
+
+        // 今日の勤怠記録がない場合
+        if (!$attendance) {
+            return '勤務外';
+        }
+
+        return match ((int) $attendance->status) {
+            1 => '出勤中',
+            2 => '休憩中',
+            3 => '退勤済',
+            default => '勤務外',
+        };
     }
 }

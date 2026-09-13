@@ -52,18 +52,49 @@
                     {{-- 休憩は「休憩」「休憩2」…とセクション分け表示。エラーは各行の入力欄の直下に個別表示する --}}
                     @foreach($data['breaks'] as $index => $break)
                         <div class="form__group">
-                            <label class="form__header">{{ $index === 0 ? '休憩' : '休憩' . ($index + 1) }}</label>
+
+                            <label class="form__header">
+                                {{ $index === 0 ? '休憩' : '休憩' . ($index + 1) }}
+                            </label>
+
                             <div class="form__input-group">
-                                <input class="form__input" type="text" name="new_break_in[{{ $index }}]" value="{{ $break['break_in'] }}">
+
+                                {{-- 修正対象の休憩ID --}}
+                                <input
+                                    type="hidden"
+                                    name="break_id[{{ $index }}]"
+                                    value="{{ $break['id'] }}"
+                                >
+
+                                <input
+                                    class="form__input"
+                                    type="text"
+                                    name="new_break_in[{{ $index }}]"
+                                    value="{{ $break['break_in'] }}"
+                                >
+
                                 <p>〜</p>
-                                <input class="form__input" type="text" name="new_break_out[{{ $index }}]" value="{{ $break['break_out'] }}">
+
+                                <input
+                                    class="form__input"
+                                    type="text"
+                                    name="new_break_out[{{ $index }}]"
+                                    value="{{ $break['break_out'] }}"
+                                >
+
                             </div>
                         </div>
+
                         <div class="error-message">
                             <div></div>
                             <div class="error-message__item">
-                                @error('new_break_in.' . $index)<p>{{ $message }}</p>@enderror
-                                @error('new_break_out.' . $index)<p>{{ $message }}</p>@enderror
+                                @error('new_break_in.' . $index)
+                                    <p>{{ $message }}</p>
+                                @enderror
+
+                                @error('new_break_out.' . $index)
+                                    <p>{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
                     @endforeach

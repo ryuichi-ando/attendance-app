@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\AttendanceCorrectionRequest;
+
 class Attendance extends Model
 {
     use HasFactory;
@@ -35,5 +37,18 @@ class Attendance extends Model
     public function attendance_correction_requests()
     {
         return $this->hasMany(AttendanceCorrectionRequest::class);
+    }
+
+    public function correctionRequests()
+    {
+        return $this->hasMany(AttendanceCorrectionRequest::class);
+    }
+
+    /**
+     * Blade側の「date」にattendance_dateを対応させる
+     */
+    public function getDateAttribute()
+    {
+        return $this->attendance_date;
     }
 }

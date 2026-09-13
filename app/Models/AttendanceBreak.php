@@ -9,6 +9,8 @@ class AttendanceBreak extends Model
 {
     use HasFactory;
 
+    protected $table = 'breaks';
+
     protected $fillable = [
         'attendance_id',
         'break_start',

@@ -105,6 +105,12 @@ http://localhost
 git clone https://github.com/ryuichi-ando/attendance-app.git
 ```
 
+ディレクトリを移動
+
+```bash
+cd attendance-app
+```
+
 2. **.envファイルの準備**
 
 `.env.example` をコピーして `.env` を作成します。

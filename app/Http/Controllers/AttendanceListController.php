@@ -53,6 +53,7 @@ class AttendanceListController extends Controller
             if (!$attendance) {
                 $formattedAttendanceRecords->push([
                     'id' => null,
+                    'attendance_date' => $currentDate->format('Y-m-d'),
                     'date' => $currentDate->format('m/d'),
                     'clock_in' => '',
                     'clock_out' => '',
@@ -103,6 +104,7 @@ class AttendanceListController extends Controller
 
             $formattedAttendanceRecords->push([
                 'id' => $attendance->id,
+                'attendance_date' => $currentDate->format('Y-m-d'),
                 'date' => $currentDate->format('m/d'),
                 'clock_in' => $attendance->start_time
                     ? Carbon::parse($attendance->start_time)->format('H:i')

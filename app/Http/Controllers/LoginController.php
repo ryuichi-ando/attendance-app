@@ -19,7 +19,13 @@ class LoginController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
-            return redirect()->route('attendance.index');
+            // メール認証済みなら勤怠画面へ
+            if (Auth::user()->hasVerifiedEmail()) {
+                return redirect()->route('attendance.index');
+            }
+
+            // 未認証ならメール認証画面へ
+            return redirect()->route('verification.notice');
         }
 
         return back()

@@ -18,11 +18,69 @@ class AttendanceDetailController extends Controller
      */
     public function show($id)
     {
+        $user = Auth::user();
+
+        /*
+         * 勤怠IDとして存在するか確認
+         */
         $attendance = Attendance::with('breaks')
             ->where('user_id', Auth::id())
-            ->findOrFail($id);
+            ->find($id);
 
-        $user = $attendance->user;
+        /*
+         * 勤怠IDが存在しない場合は、
+         * $idを日付として扱う
+         */
+        if (!$attendance) {
+            try {
+                $attendanceDate = Carbon::parse($id)->format('Y-m-d');
+            } catch (\Exception $e) {
+                abort(404);
+            }
+
+            /*
+             * そのユーザーのその日の勤怠を検索
+             */
+            $attendance = Attendance::with('breaks')
+                ->where('user_id', Auth::id())
+                ->whereDate('attendance_date', $attendanceDate)
+                ->first();
+        }
+
+        /*
+         * 勤怠が存在しない日
+         */
+        if (!$attendance) {
+
+            $attendanceDate = Carbon::parse($id);
+
+            $data = [
+                'id' => null,
+
+                'year' => $attendanceDate->format('Y年'),
+
+                'date' => $attendanceDate->format('m月d日'),
+
+                'clock_in' => '',
+
+                'clock_out' => '',
+
+                'breaks' => [],
+
+                'comment' => '',
+
+                'application' => null,
+            ];
+
+            return view(
+                'user.user-detail',
+                compact('user', 'data')
+            );
+        }
+
+        /*
+         * 勤怠が存在する場合
+         */
 
         // 承認待ちの修正申請を取得
         $application = AttendanceCorrection::where(
@@ -98,32 +156,34 @@ class AttendanceDetailController extends Controller
             ]);
 
             // 休憩の修正申請
-            $breakIds = $request->input('break_id', []);
             $breakIns = $request->input('new_break_in', []);
             $breakOuts = $request->input('new_break_out', []);
 
-            foreach ($breakIds as $index => $breakId) {
+            // 既存の休憩をインデックス順に取得
+            $breaks = $attendance->breaks->values();
 
-                // break_idがないものはスキップ
-                if (empty($breakId)) {
+            foreach ($breakIns as $index => $breakIn) {
+
+                $breakOut = $breakOuts[$index] ?? null;
+
+                // 両方とも空なら申請しない
+                if (empty($breakIn) && empty($breakOut)) {
                     continue;
                 }
 
-                // 実際にこの勤怠に紐づいている休憩か確認
-                $break = $attendance->breaks
-                    ->firstWhere('id', $breakId);
+                // 既存の休憩が存在する場合
+                $break = $breaks->get($index);
 
                 if (!$break) {
+                    // 新しい休憩については、
+                    // break_idが存在しないため現時点では保存しない
                     continue;
                 }
 
-                // 休憩修正申請を登録
                 BreakCorrectionRequest::create([
                     'break_id' => $break->id,
-                    'requested_break_start' =>
-                        $breakIns[$index] ?? null,
-                    'requested_break_end' =>
-                        $breakOuts[$index] ?? null,
+                    'requested_break_start' => $breakIn,
+                    'requested_break_end' => $breakOut,
                     'status' => 0,
                 ]);
             }

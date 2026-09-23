@@ -39,8 +39,44 @@ class AdminStaffAttendanceController extends Controller
             ->orderBy('attendance_date')
             ->get();
 
-        // Bladeで使用する形式に変換
-        $formattedAttendanceRecords = $attendanceRecords->map(function ($attendance) {
+        // attendance_dateをキーにして検索できるようにする
+        $attendanceByDate = $attendanceRecords->keyBy(function ($attendance) {
+            return Carbon::parse($attendance->attendance_date)->format('Y-m-d');
+        });
+
+        // 対象月の1日から月末までを作成
+        $formattedAttendanceRecords = collect();
+
+        $currentDate = $date->copy()->startOfMonth();
+        $endDate = $date->copy()->endOfMonth();
+
+        while ($currentDate->lte($endDate)) {
+
+            $dateKey = $currentDate->format('Y-m-d');
+
+            // その日の勤怠があるか確認
+            $attendance = $attendanceByDate->get($dateKey);
+
+            // 勤怠がない日
+            if (!$attendance) {
+                $formattedAttendanceRecords->push([
+                    'id' => null,
+
+                    'date' => $currentDate->format('m/d'),
+
+                    'clock_in' => '',
+
+                    'clock_out' => '',
+
+                    'total_break_time' => null,
+
+                    'total_time' => null,
+                ]);
+
+                $currentDate->addDay();
+
+                continue;
+            }
 
             // 出勤時間
             $clockIn = $attendance->start_time
@@ -93,7 +129,7 @@ class AdminStaffAttendanceController extends Controller
                 )
                 : null;
 
-            return [
+            $formattedAttendanceRecords->push([
                 'id' => $attendance->id,
 
                 'date' => Carbon::parse(
@@ -107,8 +143,10 @@ class AdminStaffAttendanceController extends Controller
                 'total_break_time' => $totalBreakTime,
 
                 'total_time' => $totalTime,
-            ];
-        });
+            ]);
+
+            $currentDate->addDay();
+        }
 
         return view('admin.staff-attendance-list', compact(
             'user',

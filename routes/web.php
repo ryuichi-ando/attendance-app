@@ -1,13 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceListController;
 use App\Http\Controllers\AttendanceDetailController;
 use App\Http\Controllers\ApplicationController;
-use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AttendanceReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminAttendanceController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\AdminLoginController;
 use App\Http\Controllers\AdminStaffController;
 use App\Http\Controllers\AdminStaffAttendanceController;
 use App\Http\Controllers\AdminCorrectionRequestController;
+use App\Http\Controllers\CsvExportController;
 
 
 Route::get('/', function () {
@@ -39,7 +41,7 @@ Route::get('/login', [LoginController::class, 'create'])
 Route::post('/login', [LoginController::class, 'store'])
     ->name('login.store');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     //勤怠登録
     Route::get('/attendance', [AttendanceController::class, 'index'])
         ->name('attendance.index');
@@ -51,9 +53,31 @@ Route::middleware('auth')->group(function () {
     Route::get('/attendance/list', [AttendanceListController::class, 'index'])
         ->name('attendance.list');
 
+    //レポート
+    Route::get('/attendance/report', [AttendanceReportController::class, 'index'])
+        ->name('attendance.report');
+
     //勤怠詳細
-    Route::get('/attendance/{id}', [AttendanceDetailController::class, 'show'])
-        ->name('attendance.detail');
+    Route::get('/attendance/{id}', function ($id) {
+        if (Auth::user()->is_admin) {
+            return redirect()->route('admin.attendance.show', [
+                'id' => $id
+            ]);
+        }
+
+        return app(AttendanceDetailController::class)->show($id);
+    })->name('attendance.detail');
+    /*
+    Route::post('/attendance/{id}', function (Request $request, $id) {
+
+        if (Auth::user()->is_admin) {
+            return app(AdminAttendanceController::class)->update($request, $id);
+        }
+
+        return app(AttendanceDetailController::class)->update($request, $id);
+
+    })->name('attendance.detail.update');
+    */
 
     Route::post('/attendance/{id}', [AttendanceDetailController::class, 'update'])
         ->name('attendance.detail.update');
@@ -65,9 +89,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/application/{id}', [ApplicationController::class, 'show'])
         ->name('applications.show');
 
-    //レポート
-    Route::get('/attendance/reports', [ReportController::class, 'index'])
-        ->name('reports.index');
 });
 
 Route::post('/logout', function (Request $request) {
@@ -148,20 +169,59 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 });
 
 
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware('auth')->group(function () {
 
-    Route::get(
-        '/stamp_correction_request/list',
-        [AdminCorrectionRequestController::class, 'index']
-    );
+    // 一般ユーザー・管理者共通の申請一覧
+    Route::get('/stamp_correction_request/list', function () {
 
+        if (Auth::user()->is_admin) {
+            return app(AdminCorrectionRequestController::class)->index();
+        }
+
+        return app(ApplicationController::class)->index();
+    });
+
+    // 管理者用：修正申請詳細
     Route::get(
         '/stamp_correction_request/approve/{id}',
         [AdminCorrectionRequestController::class, 'show']
-    );
+    )->middleware('admin');
 
+    // 管理者用：修正申請承認
     Route::post(
         '/stamp_correction_request/approve/{id}',
         [AdminCorrectionRequestController::class, 'approve']
-    );
+    )->middleware('admin');
 });
+
+Route::middleware(['auth', 'admin'])->group(function () {
+
+    Route::post('/export', [CsvExportController::class, 'export'])
+        ->name('csv.export');
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| メール認証
+|--------------------------------------------------------------------------
+*/
+
+// メール認証案内画面
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->middleware('auth')->name('verification.notice');
+
+// メール認証リンク
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+
+    return redirect('/attendance');
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+// 認証メール再送信
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+
+    return back()->with('message', '認証メールを再送信しました。');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');

@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\AttendanceBreak;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Http\Requests\AdminAttendanceRequest;
 
 class AdminAttendanceController extends Controller
 {
@@ -35,6 +36,9 @@ class AdminAttendanceController extends Controller
 
         // 休憩時間・合計勤務時間を計算
         $attendanceRecords->each(function ($attendance) {
+
+            $attendance->clock_in = $attendance->start_time;
+            $attendance->clock_out = $attendance->end_time;
 
             // -------------------------
             // 休憩時間の合計
@@ -167,7 +171,7 @@ class AdminAttendanceController extends Controller
     /**
      * 管理者が勤怠を直接修正
      */
-    public function update(Request $request, $id)
+    public function update(AdminAttendanceRequest $request, $id)
     {
         $attendance = Attendance::with('breaks')
             ->findOrFail($id);

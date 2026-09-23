@@ -49,7 +49,7 @@ erDiagram
         timestamp updated_at
     }
 
-    attendance_breaks {
+    breaks {
         bigint id PK
         bigint attendance_id FK
         time break_start
@@ -70,10 +70,20 @@ erDiagram
         timestamp updated_at
     }
 
+    break_correction_requests {
+        bigint id PK
+        bigint break_id FK
+        time requested_break_start
+        time requested_break_end
+        tinyint status
+        timestamp created_at
+        timestamp updated_at
+    }
+
     users ||--o{ attendances : "has many"
-    attendances ||--o{ attendance_breaks : "has many"
+    attendances ||--o{ breaks : "has many"
     attendances ||--o{ attendance_correction_requests : "has many"
-    users ||--o{ attendance_correction_requests : "has many"
+    breaks ||--o| break_correction_requests : "has one"
 ```
 
 ## 開発環境URL
